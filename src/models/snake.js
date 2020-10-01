@@ -1,9 +1,8 @@
 import * as THREE from 'three';
 
-const V = 1;
 class Snake {
     
-    constructor(scene, snake) {
+    constructor(scene, tail, food) {
         this.velocity = { x: 0, y: 0 };
 
         // unit cube. absolute unit.
@@ -12,41 +11,65 @@ class Snake {
         this.mesh = new THREE.Mesh(this.geo, this.mat);
         this.mesh.position.x = 0.5;
         this.mesh.position.y = 0.5;
+        if (tail) {
+            this.mesh.position.x = tail.mesh.position.x;
+            this.mesh.position.y = tail.mesh.position.y;
+            this.velocity.x = tail.velocity.x;
+            this.velocity.y = tail.velocity.y;
+        }
+        
+        scene.add(this.mesh);
 
 
         // a snake is a snake of snakes.
-        this.snake = snake;
-        scene.add(this.mesh);
+        this.tail = tail;
 
-        this.update = function (board) {
-            this.mesh.position.x += this.velocity.x;
-            this.mesh.position.y += this.velocity.y;
+        this.nearFood = function(food) { 
+            if (
+                Math.abs(food.mesh.position.x - this.mesh.position.x) < 0.1 &&
+                Math.abs(food.mesh.position.y - this.mesh.position.y) < 0.1
+                ) 
+                return true;
+            else
+                return false;
+        }
 
+        this.updateTail = function() {
+            if (this.tail) {        
+                tail.updateTail();        
+                tail.mesh.position.x = this.mesh.position.x;
+                tail.mesh.position.y = this.mesh.position.y;
+            }
         };
 
-        window.addEventListener("keydown", event => {
-            console.log(event.key);
-            switch (event.key) {
-                case 'w':
-                    this.velocity = { x: 0, y: V };
-                    break;
-                case 's':
-                    this.velocity = { x: 0, y: -V };
-                    break;
-                case 'a':
-                    this.velocity = { x: -V, y: 0 };
-                    break;
-                case 'd':
-                    this.velocity = { x: V, y: 0 };
-                    break;
+        this.size = function() {
+            if (!tail) {
+                return 1;
+            } else {
+                return 1 + tail.size();
             }
-        });
+        }
 
-        window.addEventListener("keyup", _event => {
-            //this.velocity = { x: 0, y: 0 };
-        });
+        this.update = function () {
+            
+            this.updateTail();
+            
+            this.mesh.position.x += this.velocity.x;
+            this.mesh.position.y += this.velocity.y;
+            if (this.nearFood(food)) {
+                food.moveFood();
+                return this.eat();
+            }
+            
+            return this;
+        };
+
+        this.eat = function() {
+            return new Snake(scene, this, food);
+        };
+
+     
     }
 }
 
 export default Snake;
-
